@@ -1,4 +1,5 @@
 import type { User, District } from '../types';
+import { apiClient } from './api';
 
 const USER_STORAGE_KEY = 'urban_arena_current_user_v2';
 
@@ -46,6 +47,34 @@ export function setCurrentUser(user: User | null): void {
   }
 }
 
+export async function fetchCurrentUser(): Promise<User | null> {
+  const user = await apiClient.getCurrentUser();
+  if (user) {
+    setCurrentUser(user);
+  }
+  return user;
+}
+
+export async function loginUser(email: string, password: string): Promise<User> {
+  const result = await apiClient.login(email, password);
+  apiClient.setToken(result.access_token);
+  setCurrentUser(result.user);
+  return result.user;
+}
+
+export async function registerUser(
+  name: string,
+  email: string,
+  password: string,
+  role: string = 'citizen',
+  district?: District
+): Promise<User> {
+  const result = await apiClient.register(name, email, password, role, district);
+  apiClient.setToken(result.access_token);
+  setCurrentUser(result.user);
+  return result.user;
+}
+
 export function registerCustomUser(name: string, district?: District): User {
   const newUser: User = {
     id: `citizen-${Date.now()}`,
@@ -79,5 +108,6 @@ export function incrementUserProblem(): User | null {
 }
 
 export function logoutUser(): void {
+  apiClient.setToken(null);
   setCurrentUser(null);
 }

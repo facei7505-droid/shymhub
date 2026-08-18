@@ -12,7 +12,7 @@ interface ResolvedShowcaseProps {
 
 export const ResolvedShowcase: React.FC<ResolvedShowcaseProps> = ({
   problems,
-  theme = 'dark',
+  theme = 'light',
   language = 'ru',
 }) => {
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');

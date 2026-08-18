@@ -33,16 +33,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenProfileModal,
   onOpenSettingsModal,
 }) => {
-  const isDark = theme === 'dark';
   const t = (key: string) => TRANSLATIONS[language]?.[key] || key;
   const isInspector = currentUser?.role === 'inspector';
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b backdrop-blur-xl transition-colors duration-300 ${
-      isDark
-        ? 'border-slate-800/80 bg-[#0B0F19]/90 text-slate-100 shadow-[0_4px_30px_rgba(0,0,0,0.6)]'
-        : 'border-slate-200 bg-white/95 text-slate-900 shadow-sm'
-    }`}>
+    <header className="sticky top-0 z-50 w-full border-b backdrop-blur-xl transition-colors duration-300 border-slate-200 bg-white/95 text-slate-900 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
         
         {/* Brand Logo */}
@@ -52,39 +47,31 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <img
             src="/logo.jpg"
-            alt="UrbanArena Logo"
+            alt="Battle of Problems Logo"
             className="w-10 h-10 rounded-xl object-contain"
           />
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className={`font-black text-base tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                UrbanArena
+              <span className="font-black text-base tracking-tight text-slate-900">
+                Battle of Problems
               </span>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${
-                isDark ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' : 'bg-cyan-50 text-cyan-700 border-cyan-200'
-              }`}>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border bg-cyan-50 text-cyan-700 border-cyan-200">
                 SHYMKENT
               </span>
             </div>
-            <span className={`text-[11px] font-medium tracking-tight hidden sm:block ${
-              isDark ? 'text-slate-400' : 'text-slate-500'
-            }`}>
+            <span className="text-[11px] font-medium tracking-tight hidden sm:block text-slate-500">
               {t('tagline')}
             </span>
           </div>
         </div>
 
         {/* Tab Navigation (Arena, Map, Inspector) */}
-        <nav className={`flex items-center p-1 rounded-2xl border transition-all ${
-          isDark ? 'bg-[#131B2E] border-slate-800' : 'bg-slate-100 border-slate-200'
-        }`}>
+        <nav className="flex items-center p-1 rounded-2xl border transition-all bg-slate-100 border-slate-200">
           <button
             onClick={() => setActiveTab('arena')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'arena'
                 ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/30'
-                : isDark
-                ? 'text-slate-400 hover:text-white hover:bg-[#1A243D]'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white'
             }`}
           >
@@ -97,8 +84,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'map'
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/30'
-                : isDark
-                ? 'text-slate-400 hover:text-white hover:bg-[#1A243D]'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white'
             }`}
           >
@@ -111,13 +96,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'inspector'
                 ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/30'
-                : isInspector
-                ? 'text-amber-400 hover:bg-amber-500/10'
-                : isDark
-                ? 'text-slate-400 hover:text-white hover:bg-[#1A243D]'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white'
             }`}
             title="Кабинет Акимата и ЖКХ"
+            style={{ display: isInspector ? 'flex' : 'none' }}
           >
             <Shield className="w-3.5 h-3.5" />
             <span>Акимат</span>
@@ -128,9 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-2">
           
           {/* Language Switcher */}
-          <div className={`hidden sm:flex items-center p-0.5 rounded-xl border text-xs font-bold ${
-            isDark ? 'bg-[#131B2E] border-slate-800' : 'bg-slate-100 border-slate-200'
-          }`}>
+          <div className="hidden sm:flex items-center p-0.5 rounded-xl border text-xs font-bold bg-slate-100 border-slate-200">
             {(['kz', 'ru', 'en'] as Language[]).map((l) => (
               <button
                 key={l}
@@ -138,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`px-2 py-1 rounded-lg transition-all cursor-pointer uppercase ${
                   language === l
                     ? 'bg-cyan-500 text-slate-950 font-black shadow-sm'
-                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {l}
@@ -159,9 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {currentUser ? (
             <button
               onClick={onOpenProfileModal}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border cursor-pointer transition-all ${
-                isDark ? 'bg-[#131B2E] border-slate-800 hover:bg-[#1A243D] text-slate-200' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-900 shadow-sm'
-              }`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border cursor-pointer transition-all bg-white border-slate-200 hover:bg-slate-50 text-slate-900 shadow-sm`}
             >
               <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
                 currentUser.role === 'inspector'
@@ -177,9 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             <button
               onClick={onOpenAuthModal}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                isDark ? 'bg-[#131B2E] text-slate-200 border-slate-800 hover:bg-[#1A243D]' : 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200`}
             >
               <UserIcon className="w-3.5 h-3.5 text-cyan-500" />
               <span>{t('login')}</span>
@@ -189,20 +165,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Theme Toggle Button */}
           <button
             onClick={onToggleTheme}
-            className={`p-2 rounded-xl border transition-all cursor-pointer ${
-              isDark ? 'bg-[#131B2E] text-amber-400 border-slate-800 hover:bg-[#1A243D]' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-            }`}
+            className={`p-2 rounded-xl border transition-all cursor-pointer bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200`}
             title="Сменить тему"
           >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
           {/* Settings Modal Button */}
           <button
             onClick={onOpenSettingsModal}
-            className={`p-2 rounded-xl border transition-all cursor-pointer ${
-              isDark ? 'bg-[#131B2E] text-slate-400 hover:text-white border-slate-800 hover:bg-[#1A243D]' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-            }`}
+            className={`p-2 rounded-xl border transition-all cursor-pointer bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200`}
             title="Настройки"
           >
             <Settings className="w-4 h-4" />

@@ -15,7 +15,6 @@ interface CityMapProps {
 
 export const CityMap: React.FC<CityMapProps> = ({
   problems,
-  theme = 'dark',
   language = 'ru',
 }) => {
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(problems[0] || null);
@@ -24,9 +23,7 @@ export const CityMap: React.FC<CityMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
 
-  const isDark = theme === 'dark';
   const t = (key: string) => TRANSLATIONS[language]?.[key] || key;
 
   const districts: District[] = ['Аль-Фарабийский', 'Енбекшинский', 'Абайский', 'Каратауский', 'Туран'];
@@ -41,25 +38,20 @@ export const CityMap: React.FC<CityMapProps> = ({
 
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
-        center: [42.3211, 69.5975], // Shymkent Center
+        center: [42.3211, 69.5975],
         zoom: 12.5,
         zoomControl: false,
       });
 
-      const tileUrl = isDark
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-      const tiles = L.tileLayer(tileUrl, {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        maxZoom: 19,
+      const tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+      L.tileLayer(tileUrl, {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
+        maxZoom: 20,
       }).addTo(map);
 
-      tileLayerRef.current = tiles;
-
-      const markersGroup = L.layerGroup().addTo(map);
-      markersLayerRef.current = markersGroup;
+      const markersLayer = L.layerGroup().addTo(map);
+      markersLayerRef.current = markersLayer;
 
       mapInstanceRef.current = map;
     }
@@ -72,283 +64,194 @@ export const CityMap: React.FC<CityMapProps> = ({
     };
   }, []);
 
-  // Update Tiles when Theme changes
-  useEffect(() => {
-    if (!mapInstanceRef.current || !tileLayerRef.current) return;
-
-    const tileUrl = isDark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-    mapInstanceRef.current.removeLayer(tileLayerRef.current);
-    const newTiles = L.tileLayer(tileUrl, {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      maxZoom: 19,
-      subdomains: 'abcd',
-    }).addTo(mapInstanceRef.current);
-
-    tileLayerRef.current = newTiles;
-  }, [isDark]);
-
-  // Update Markers on Map
+  // Update markers
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
 
     markersLayerRef.current.clearLayers();
 
-    const bounds = L.latLngBounds([]);
-
     filteredProblems.forEach((problem) => {
-      const isSelected = selectedProblem?.id === problem.id;
-      const isHighPriority = problem.eloRating >= 1380;
       const priority = getPriorityFromElo(problem.eloRating, language);
+      const color = problem.status === 'resolved' ? '#10b981' : problem.urgencyLevel === 'critical' ? '#ef4444' : problem.urgencyLevel === 'high' ? '#f97316' : '#eab308';
 
-      const markerHtml = `
-        <div class="relative group cursor-pointer">
-          ${isHighPriority ? '<span class="animate-ping absolute -inset-1 rounded-full bg-rose-500 opacity-75"></span>' : ''}
-          <div style="
-            width: ${isSelected ? '34px' : '28px'};
-            height: ${isSelected ? '34px' : '28px'};
-            border-radius: 9999px;
-            background: ${isSelected ? '#ffffff' : priority.dotColor};
-            color: ${isSelected ? '#0f172a' : '#ffffff'};
-            border: 2px solid ${isSelected ? '#e11d48' : '#ffffff'};
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 900;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            transition: transform 0.2s;
-          ">
-            🔥
+      const marker = L.circleMarker([problem.locationLat, problem.locationLng], {
+        radius: 8,
+        fillColor: color,
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.9,
+      });
+
+      marker.bindPopup(`
+        <div style="min-width: 200px; font-family: system-ui;">
+          <img src="${problem.imageUrl}" alt="${problem.title}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" onerror="this.src='https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400&auto=format&fit=crop&q=80'" />
+          <h3 style="margin: 0 0 4px; font-size: 14px; font-weight: 700; color: #0f172a;">${problem.title}</h3>
+          <p style="margin: 0 0 8px; font-size: 12px; color: #64748b;">${problem.address || ''}</p>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <span style="background: #f1f5f9; color: #0f172a; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">${getCategoryLabel(problem.category, language)}</span>
+            <span style="background: ${color}15; color: ${color}; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">${priority.label}</span>
           </div>
         </div>
-      `;
-
-      const customIcon = L.divIcon({
-        html: markerHtml,
-        className: 'custom-map-marker',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-      });
-
-      const marker = L.marker([problem.locationLat, problem.locationLng], {
-        icon: customIcon,
-      });
+      `);
 
       marker.on('click', () => {
         setSelectedProblem(problem);
       });
 
-      marker.addTo(markersLayerRef.current!);
-      bounds.extend([problem.locationLat, problem.locationLng]);
+      markersLayerRef.current!.addLayer(marker);
     });
-
-    if (filteredProblems.length > 0 && activeDistrict !== 'all') {
-      mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-    }
-  }, [filteredProblems, selectedProblem, activeDistrict, language]);
+  }, [filteredProblems, language]);
 
   const handleZoomIn = () => {
-    mapInstanceRef.current?.zoomIn();
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.zoomIn();
+    }
   };
 
   const handleZoomOut = () => {
-    mapInstanceRef.current?.zoomOut();
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.zoomOut();
+    }
   };
 
-  const selectedPriority = selectedProblem ? getPriorityFromElo(selectedProblem.eloRating, language) : null;
-
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-6 space-y-6">
-      
-      {/* Header */}
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-6 ${
-        isDark ? 'border-slate-800/80' : 'border-slate-200'
-      }`}>
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-xs font-bold uppercase tracking-wider mb-2">
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{t('mapBadge')}</span>
-          </div>
-          <h2 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {t('mapTitle')}
-          </h2>
-          <p className={`text-xs sm:text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-            {t('mapSubtitle')}
-          </p>
+    <div className="w-full flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="text-center space-y-2 mb-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-600 text-xs font-bold uppercase tracking-wider">
+          <MapPin className="w-4 h-4 text-cyan-500" />
+          {t('mapBadge')}
         </div>
 
-        {/* District Filter Pill */}
-        <div className={`flex items-center gap-1 overflow-x-auto p-1 rounded-2xl border text-xs font-semibold ${
-          isDark ? 'bg-[#131B2E] border-slate-800' : 'bg-slate-100 border-slate-200'
-        }`}>
-          <button
-            onClick={() => setActiveDistrict('all')}
-            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-              activeDistrict === 'all'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-                : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {t('entireCity')}
-          </button>
-          {districts.map((d) => (
-            <button
-              key={d}
-              onClick={() => setActiveDistrict(d)}
-              className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all cursor-pointer ${
-                activeDistrict === d
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-                  : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {getDistrictLabel(d, language).split(' ')[0]}
-            </button>
-          ))}
-        </div>
+        <h2 className="text-3xl font-black tracking-tight text-slate-900">
+          {t('mapTitle')}
+        </h2>
+
+        <p className="text-xs sm:text-sm max-w-3xl mx-auto text-slate-600">
+          {t('mapSubtitle')}
+        </p>
       </div>
 
-      {/* Real Leaflet Map Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* Visual Map Canvas with Leaflet */}
-        <div className={`lg:col-span-2 relative h-[500px] sm:h-[560px] rounded-3xl border overflow-hidden shadow-2xl ${
-          isDark
-            ? 'border-slate-800/80 shadow-[0_10px_40px_rgba(0,0,0,0.6)]'
-            : 'border-slate-300 shadow-lg'
-        }`}>
-          
-          <div ref={mapContainerRef} className="w-full h-full z-0" />
+      {/* District Filter Tags */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button
+          onClick={() => setActiveDistrict('all')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeDistrict === 'all'
+              ? 'bg-cyan-500 text-white shadow-sm'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          {t('entireCity')}
+        </button>
+        {districts.map((d) => (
+          <button
+            key={d}
+            onClick={() => setActiveDistrict(d)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeDistrict === d
+                ? 'bg-cyan-500 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {getDistrictLabel(d, language)}
+          </button>
+        ))}
+      </div>
 
-          {/* Floating Zoom Controls */}
-          <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Map */}
+        <div className="lg:col-span-2 relative rounded-3xl overflow-hidden border border-slate-200 shadow-sm bg-white">
+          <div ref={mapContainerRef} className="w-full h-[400px] sm:h-[500px]" />
+
+          {/* Zoom Controls */}
+          <div className="absolute top-4 right-4 flex flex-col gap-2">
             <button
               onClick={handleZoomIn}
-              className={`p-2.5 rounded-xl border backdrop-blur-md shadow-lg transition-all cursor-pointer ${
-                isDark
-                  ? 'bg-[#0B0F19]/90 border-slate-700 text-white hover:bg-slate-800'
-                  : 'bg-white/95 border-slate-300 text-slate-900 hover:bg-slate-100'
-              }`}
+              className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer shadow-sm"
+              title="Увеличить"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-5 h-5" />
             </button>
             <button
               onClick={handleZoomOut}
-              className={`p-2.5 rounded-xl border backdrop-blur-md shadow-lg transition-all cursor-pointer ${
-                isDark
-                  ? 'bg-[#0B0F19]/90 border-slate-700 text-white hover:bg-slate-800'
-                  : 'bg-white/95 border-slate-300 text-slate-900 hover:bg-slate-100'
-              }`}
+              className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-colors cursor-pointer shadow-sm"
+              title="Уменьшить"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-5 h-5" />
             </button>
           </div>
-
-          {/* Map Controls / Legend */}
-          <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3 px-3.5 py-2 rounded-2xl border backdrop-blur-md text-xs shadow-xl pointer-events-none">
-            <div className={`flex items-center gap-3 ${
-              isDark ? 'text-slate-200' : 'text-slate-900 font-semibold'
-            }`}>
-              <div className="flex items-center gap-1.5 font-bold text-rose-500">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block animate-ping" />
-                <span>{t('highUrgency')}</span>
-              </div>
-              <div className="flex items-center gap-1.5 font-semibold text-amber-500">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
-                <span>{t('mediumUrgency')}</span>
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        {/* Selected Problem Inspector */}
-        <div className={`border rounded-3xl p-6 space-y-4 shadow-xl ${
-          isDark ? 'bg-[#131B2E] border-slate-800/80' : 'bg-white border-slate-200'
-        }`}>
-          {selectedProblem && selectedPriority ? (
-            <>
-              <div className="relative h-48 rounded-2xl overflow-hidden border border-slate-700/60 bg-slate-900">
+        {/* Problem Detail Panel */}
+        <div className="lg:col-span-1">
+          {selectedProblem ? (
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="relative h-48 sm:h-56">
                 <img
                   src={selectedProblem.imageUrl}
                   alt={selectedProblem.title}
                   onError={(e) => handleImageError(e, selectedProblem.category)}
                   className="w-full h-full object-cover"
                 />
-                <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full backdrop-blur-md border text-xs font-bold ${selectedPriority.badgeClass} bg-slate-950/85`}>
-                  {selectedPriority.label}
-                </div>
-                <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md border border-slate-700 text-xs text-white font-semibold">
-                  {getDistrictLabel(selectedProblem.district, language)}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className={`text-lg font-bold leading-snug ${
-                  isDark ? 'text-white' : 'text-slate-900'
-                }`}>
-                  {selectedProblem.title}
-                </h3>
-                <p className={`text-xs leading-relaxed ${
-                  isDark ? 'text-slate-300' : 'text-slate-600'
-                }`}>
-                  {selectedProblem.description}
-                </p>
-              </div>
-
-              <div className={`pt-2 border-t space-y-2 text-xs ${
-                isDark ? 'border-slate-800/80 text-slate-300' : 'border-slate-100 text-slate-700'
-              }`}>
-                {selectedProblem.address && (
-                  <div className="flex items-center justify-between">
-                    <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>{t('addressLabel')}</span>
-                    <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedProblem.address}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Категория:</span>
-                  <span className="font-semibold text-rose-500">{getCategoryLabel(selectedProblem.category, language)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>{t('priorityLabel')}</span>
-                  <span className={`font-bold ${selectedPriority.label.includes('Критический') || selectedPriority.label.includes('шұғыл') ? 'text-rose-400' : 'text-amber-400'}`}>
-                    {selectedPriority.shortLabel}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <div className="absolute bottom-3 left-3 right-3">
+                  <span className="inline-block px-2.5 py-1 rounded-lg bg-white/90 text-slate-900 text-[10px] font-bold">
+                    {getCategoryLabel(selectedProblem.category, language)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>{t('totalDuels')}</span>
-                  <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedProblem.matchesPlayed}</span>
-                </div>
               </div>
 
-              <button
-                onClick={() => {
-                  window.open(
-                    `https://www.google.com/maps/search/?api=1&query=${selectedProblem.locationLat},${selectedProblem.locationLng}`,
-                    '_blank'
-                  );
-                }}
-                className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer border ${
-                  isDark
-                    ? 'bg-[#1C263E] hover:bg-[#22304F] border-slate-700 text-slate-100'
-                    : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-900'
-                }`}
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>{t('openIn2Gis')}</span>
-              </button>
-            </>
+              <div className="p-4 space-y-3">
+                <h3 className="text-base font-bold text-slate-900 line-clamp-2">
+                  {selectedProblem.title}
+                </h3>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>{selectedProblem.address || 'Шымкент'}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <div className="text-[10px] text-slate-500 mb-0.5">{t('priorityLabel')}</div>
+                    <div className="text-xs font-bold text-slate-900">
+                      {getPriorityFromElo(selectedProblem.eloRating, language).label}
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <div className="text-[10px] text-slate-500 mb-0.5">{t('statusLabel')}</div>
+                    <div className="text-xs font-bold text-slate-900">
+                      {selectedProblem.status === 'resolved' ? 'Устранено' : selectedProblem.status === 'in_progress' ? 'В работе' : 'В очереди'}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 line-clamp-3">
+                  {selectedProblem.description}
+                </p>
+
+                <a
+                  href={`https://maps.google.com/?q=${selectedProblem.locationLat},${selectedProblem.locationLng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold transition-all cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {t('openIn2Gis')}
+                </a>
+              </div>
+            </div>
           ) : (
-            <div className="text-center py-12 text-slate-500">
-              {t('selectMarkerHint')}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 text-center text-slate-500 text-sm">
+              Выберите маркер на карте для просмотра деталей проблемы
             </div>
           )}
         </div>
-
       </div>
-
     </div>
   );
 };

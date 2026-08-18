@@ -12,7 +12,7 @@ interface StatsDashboardProps {
 
 export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   problems,
-  theme = 'dark',
+  theme = 'light',
   language = 'ru',
 }) => {
   const totalVotes = problems.reduce((acc, p) => acc + p.matchesPlayed, 0) / 2;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Shield } from 'lucide-react';
 import { Navbar, type TabType } from './components/Navbar';
 import { Arena } from './components/Arena';
 import { CityMap } from './components/CityMap';
@@ -9,7 +10,7 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { SettingsModal } from './components/SettingsModal';
 import type { Problem, User, AppSettings, ThemeMode, Language } from './types';
 import { getProblems, resetProblems } from './utils/storage';
-import { getCurrentUser, logoutUser, incrementUserVote, incrementUserProblem } from './utils/auth';
+import { getCurrentUser, logoutUser, incrementUserVote, incrementUserProblem, fetchCurrentUser } from './utils/auth';
 import { getAppSettings, saveAppSettings } from './utils/settings';
 
 export function App() {
@@ -31,6 +32,9 @@ export function App() {
 
   useEffect(() => {
     refreshData();
+    fetchCurrentUser().then(user => {
+      if (user) setCurrentUser(user);
+    });
   }, []);
 
   const handleVoteCompleted = () => {
@@ -86,20 +90,10 @@ export function App() {
     setCurrentUser(null);
   };
 
-  const isDark = settings.theme === 'dark';
   const language = settings.language || 'ru';
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 selection:bg-rose-500 selection:text-white ${
-      isDark ? 'bg-[#0B0F19] text-slate-100' : 'bg-slate-50 text-slate-900'
-    }`}>
-      {/* Background Lighting */}
-      <div className={`fixed inset-0 pointer-events-none ${
-        isDark
-          ? 'bg-[radial-gradient(ellipse_80%_50%_at_50%_-15%,rgba(244,63,94,0.12),transparent_70%)]'
-          : 'bg-[radial-gradient(ellipse_80%_50%_at_50%_-15%,rgba(244,63,94,0.05),transparent_70%)]'
-      }`} />
-
+    <div className="min-h-screen flex flex-col bg-white text-slate-900 selection:bg-rose-500 selection:text-white">
       {/* Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -121,6 +115,7 @@ export function App() {
         {activeTab === 'arena' && (
           <Arena
             currentUser={currentUser}
+            problems={problems}
             settings={settings}
             theme={settings.theme}
             language={language}
@@ -139,13 +134,34 @@ export function App() {
           />
         )}
 
-        {activeTab === 'inspector' && (
+        {activeTab === 'inspector' && currentUser?.role === 'inspector' && (
           <InspectorDashboard
             problems={problems}
             onDataMutated={refreshData}
-            theme={settings.theme}
             language={language}
           />
+        )}
+
+        {activeTab === 'inspector' && currentUser?.role !== 'inspector' && (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-amber-50 border border-amber-200 text-amber-600">
+              <Shield className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-slate-900">
+                Доступ только для инспекторов
+              </h2>
+              <p className="text-sm max-w-md text-slate-600">
+                Кабинет Акимата и ЖКХ доступен только authorized инспекторам. Пожалуйста, войдите под аккаунтом инспектора.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-bold transition-all shadow-lg cursor-pointer"
+            >
+              Войти как инспектор
+            </button>
+          </div>
         )}
       </main>
 

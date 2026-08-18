@@ -14,7 +14,7 @@ interface LeaderboardProps {
 export const Leaderboard: React.FC<LeaderboardProps> = ({
   problems,
   currentUser,
-  theme = 'dark',
+  theme = 'light',
   language = 'ru',
   onStatusChange,
 }) => {

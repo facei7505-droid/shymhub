@@ -5,7 +5,7 @@ const SETTINGS_STORAGE_KEY = 'urban_arena_app_settings_v1';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: 'ru',
-  theme: 'dark',
+  theme: 'light',
   soundEnabled: true,
   confettiEnabled: true,
   matchmakingEloDelta: 200,

@@ -43,7 +43,7 @@ export function exportProblemsToCSV(problems: Problem[]) {
 
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `UrbanArena_Shymkent_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.setAttribute('download', `Battle_of_Problems_Shymkent_Report_${new Date().toISOString().slice(0, 10)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -53,7 +53,7 @@ export function exportProblemsToJSON(problems: Problem[]) {
   const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(problems, null, 2));
   const link = document.createElement('a');
   link.setAttribute('href', dataStr);
-  link.setAttribute('download', `UrbanArena_Shymkent_Data_${new Date().toISOString().slice(0, 10)}.json`);
+  link.setAttribute('download', `Battle_of_Problems_Shymkent_Data_${new Date().toISOString().slice(0, 10)}.json`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, RefreshCw, CheckCircle2, Lock, Flame, MapPin } from 'lucide-react';
 import type { Problem, User, AppSettings, ThemeMode, Language } from '../types';
@@ -10,47 +10,52 @@ import { getPriorityFromElo } from '../utils/priority';
 
 interface ArenaProps {
   currentUser: User | null;
+  problems: Problem[];
   settings: AppSettings;
   theme?: ThemeMode;
   language?: Language;
   onRequireAuth: () => void;
   onVoteCompleted: () => void;
-  // kept in interface for backward-compat with App.tsx but unused
   streakCount?: number;
   setStreakCount?: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export const Arena: React.FC<ArenaProps> = ({
   currentUser,
+  problems,
   settings,
-  theme = 'dark',
   language = 'ru',
   onRequireAuth,
   onVoteCompleted,
 }) => {
   const [pair, setPair] = useState<[Problem, Problem] | null>(null);
   const [selectedWinnerId, setSelectedWinnerId] = useState<string | null>(null);
-  const [recentPairs, setRecentPairs] = useState<string[]>([]);
+  const [, setRecentPairs] = useState<string[]>([]);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const recentPairsRef = useRef<string[]>([]);
 
-  const isDark = theme === 'dark';
   const t = (key: string) => TRANSLATIONS[language]?.[key] || key;
 
   const loadNextPair = useCallback(() => {
     setIsTransitioning(true);
     setSelectedWinnerId(null);
 
-    const nextPair = getPairToVote(recentPairs.slice(-6));
+    const exclude = recentPairsRef.current.slice(-6);
+    const nextPair = getPairToVote(exclude, problems);
     if (nextPair) {
       setPair(nextPair);
-      setRecentPairs((prev) => [...prev, nextPair[0].id, nextPair[1].id]);
+      setRecentPairs((prev) => {
+        const next = [...prev, nextPair[0].id, nextPair[1].id];
+        recentPairsRef.current = next;
+        return next;
+      });
     }
     setTimeout(() => setIsTransitioning(false), 200);
-  }, [recentPairs]);
+  }, [problems]);
 
   useEffect(() => {
     loadNextPair();
-  }, []);
+  }, [problems, loadNextPair]);
 
   const handleVote = (winner: Problem, loser: Problem) => {
     if (!currentUser) {
@@ -65,7 +70,6 @@ export const Arena: React.FC<ArenaProps> = ({
     }
 
     setSelectedWinnerId(winner.id);
-    // Elo is recalculated mathematically in storage (hidden from the user)
     recordVote(winner.id, loser.id, currentUser.id);
     onVoteCompleted();
 
@@ -102,17 +106,11 @@ export const Arena: React.FC<ArenaProps> = ({
           {t('arenaBadge')}
         </div>
 
-        <h1 className={`text-3xl sm:text-4xl md:text-5xl font-black tracking-tight ${
-          isDark
-            ? 'text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300'
-            : 'text-slate-900'
-        }`}>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900">
           {t('arenaTitle')}
         </h1>
 
-        <p className={`text-xs sm:text-sm max-w-lg mx-auto ${
-          isDark ? 'text-slate-400' : 'text-slate-600'
-        }`}>
+        <p className={`text-xs sm:text-sm max-w-lg mx-auto text-slate-600`}>
           {t('arenaSubtitle')}
         </p>
 
@@ -120,11 +118,7 @@ export const Arena: React.FC<ArenaProps> = ({
         {!currentUser && (
           <div
             onClick={onRequireAuth}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl border text-xs font-semibold cursor-pointer transition-all shadow-md ${
-              isDark
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
-                : 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl border text-xs font-semibold cursor-pointer transition-all shadow-md bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100`}
           >
             <Lock className="w-3.5 h-3.5 text-amber-500" />
             <span>{t('guestBanner')}</span>
@@ -138,9 +132,7 @@ export const Arena: React.FC<ArenaProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 relative items-stretch">
             
             {/* Center VS Indicator */}
-            <div className={`hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full border-2 shadow-2xl items-center justify-center z-30 pointer-events-none ${
-              isDark ? 'bg-[#0B0F19] border-slate-700 shadow-cyan-500/20' : 'bg-white border-slate-200 shadow-xl'
-            }`}>
+            <div className={`hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full border-2 shadow-2xl items-center justify-center z-30 pointer-events-none bg-white border-slate-200 shadow-xl`}>
               <span className="font-black text-xs tracking-widest text-rose-500 bg-rose-500/10 px-2 py-1 rounded-full border border-rose-500/20">
                 VS
               </span>
@@ -154,7 +146,6 @@ export const Arena: React.FC<ArenaProps> = ({
               isLoser={selectedWinnerId !== null && selectedWinnerId !== pair[0].id}
               disabled={selectedWinnerId !== null}
               isGuest={!currentUser}
-              isDark={isDark}
               language={language}
               t={t}
               onSelect={() => handleVote(pair[0], pair[1])}
@@ -168,25 +159,22 @@ export const Arena: React.FC<ArenaProps> = ({
               isLoser={selectedWinnerId !== null && selectedWinnerId !== pair[1].id}
               disabled={selectedWinnerId !== null}
               isGuest={!currentUser}
-              isDark={isDark}
               language={language}
               t={t}
               onSelect={() => handleVote(pair[1], pair[0])}
             />
           </div>
         ) : (
-          <div className={`h-96 flex flex-col items-center justify-center text-center p-6 rounded-3xl border ${
-            isDark ? 'bg-[#131B2E] border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'
-          } space-y-3`}>
+          <div className={`h-96 flex flex-col items-center justify-center text-center p-6 rounded-3xl border bg-white border-slate-200 text-slate-600 shadow-sm space-y-3`}>
             <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
               <RefreshCw className="w-6 h-6" />
             </div>
             <div className="space-y-1">
-              <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h3 className={`text-base font-bold text-slate-900`}>
                 Нет активных проблем для дуэли
               </h3>
               <p className="text-xs max-w-sm">
-                База данных готова к синхронизации с FastAPI backend. Добавьте новую городскую проблему через кнопку «Сообщить».
+                Добавьте новую городскую проблему через кнопку «Сообщить».
               </p>
             </div>
           </div>
@@ -194,28 +182,18 @@ export const Arena: React.FC<ArenaProps> = ({
       </div>
 
       {/* Footer Controls */}
-      <div className={`w-full flex items-center justify-between text-xs pt-4 border-t mt-4 ${
-        isDark ? 'text-slate-500 border-slate-800/80' : 'text-slate-600 border-slate-200'
-      }`}>
+      <div className={`w-full flex items-center justify-between text-xs pt-4 border-t mt-4 text-slate-600 border-slate-200`}>
         <div className="hidden sm:flex items-center gap-2">
           <span>{t('shortcuts')}</span>
-          <kbd className={`px-2 py-1 border rounded-lg font-mono font-bold ${
-            isDark ? 'bg-[#131B2E] border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-800'
-          }`}>1</kbd>
+          <kbd className={`px-2 py-1 border rounded-lg font-mono font-bold bg-slate-100 border-slate-300 text-slate-800`}>1</kbd>
           <span>или</span>
-          <kbd className={`px-2 py-1 border rounded-lg font-mono font-bold ${
-            isDark ? 'bg-[#131B2E] border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-800'
-          }`}>2</kbd>
+          <kbd className={`px-2 py-1 border rounded-lg font-mono font-bold bg-slate-100 border-slate-300 text-slate-800`}>2</kbd>
         </div>
 
         <button
           onClick={loadNextPair}
           disabled={selectedWinnerId !== null}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
-            isDark
-              ? 'bg-[#131B2E] hover:bg-[#1A243D] border-slate-800 text-slate-400 hover:text-white'
-              : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700 shadow-sm'
-          }`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer bg-white hover:bg-slate-100 border-slate-300 text-slate-700 shadow-sm`}
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>{t('skipPair')}</span>
@@ -233,7 +211,6 @@ interface DuelCardProps {
   isLoser: boolean;
   disabled: boolean;
   isGuest: boolean;
-  isDark: boolean;
   language: Language;
   t: (k: string) => string;
   onSelect: () => void;
@@ -246,7 +223,6 @@ const DuelCard: React.FC<DuelCardProps> = ({
   isLoser,
   disabled,
   isGuest,
-  isDark,
   language,
   t,
   onSelect,
@@ -267,13 +243,11 @@ const DuelCard: React.FC<DuelCardProps> = ({
       whileHover={!disabled ? { y: -4, scale: 1.01 } : {}}
       whileTap={!disabled ? { scale: 0.99 } : {}}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className={`group relative h-[440px] sm:h-[490px] w-full rounded-3xl overflow-hidden cursor-pointer border-2 transition-all duration-300 flex flex-col justify-between p-6 select-none shadow-2xl bg-slate-900 ${
+      className={`group relative h-[440px] sm:h-[490px] w-full rounded-3xl overflow-hidden cursor-pointer border-2 transition-all duration-300 flex flex-col justify-between p-6 select-none shadow-2xl bg-white ${
         isWinner
           ? 'border-emerald-500 shadow-[0_0_45px_rgba(16,185,129,0.35)] ring-2 ring-emerald-500'
           : isLoser
-          ? isDark ? 'border-slate-800' : 'border-slate-300'
-          : isDark
-          ? 'border-slate-800 hover:border-slate-600 bg-[#131B2E]'
+          ? 'border-slate-300'
           : 'border-slate-200 hover:border-slate-300 bg-white'
       }`}
     >
@@ -285,29 +259,29 @@ const DuelCard: React.FC<DuelCardProps> = ({
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
       />
       
-      {/* High-Contrast Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/25" />
+      {/* Light Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-white/30" />
 
       {/* Top Badges */}
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/85 backdrop-blur-md border border-slate-700/60 text-xs font-semibold text-white">
-            <MapPin className="w-3.5 h-3.5 text-rose-400" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-slate-300 text-xs font-semibold text-slate-900">
+            <MapPin className="w-3.5 h-3.5 text-rose-500" />
             <span>{districtName}</span>
           </div>
 
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold border border-rose-500/30 text-rose-300 bg-slate-950/80">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold border border-rose-500/30 text-rose-700 bg-white/90">
             {categoryName}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Human-friendly priority badge (Elo calculated under the hood) */}
-          <div className={`px-3 py-1 rounded-full border text-xs font-bold backdrop-blur-md bg-slate-950/85 ${priority.badgeClass}`}>
+          <div className={`px-3 py-1 rounded-full border text-xs font-bold backdrop-blur-md bg-white/90 ${priority.badgeClass}`}>
             {priority.label}
           </div>
 
-          <span className="hidden md:flex w-7 h-7 rounded-full bg-slate-950/90 border border-slate-700 items-center justify-center text-xs font-mono font-bold text-slate-300 group-hover:border-rose-500 group-hover:text-rose-400 transition-colors">
+          <span className="hidden md:flex w-7 h-7 rounded-full bg-white/90 border border-slate-300 items-center justify-center text-xs font-mono font-bold text-slate-700 group-hover:border-rose-500 group-hover:text-rose-500 transition-colors">
             {shortcut}
           </span>
         </div>
@@ -327,16 +301,16 @@ const DuelCard: React.FC<DuelCardProps> = ({
 
       {/* Bottom Content */}
       <div className="relative z-10 space-y-3">
-        <h2 className="text-xl sm:text-2xl font-bold text-white leading-snug group-hover:text-rose-200 transition-colors line-clamp-2 drop-shadow-md">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-snug group-hover:text-rose-600 transition-colors line-clamp-2 drop-shadow-md">
           {problem.title}
         </h2>
 
-        <p className="text-xs sm:text-sm text-slate-200 line-clamp-2 leading-relaxed drop-shadow-sm">
+        <p className="text-xs sm:text-sm text-slate-700 line-clamp-2 leading-relaxed drop-shadow-sm">
           {problem.description}
         </p>
 
         {problem.address && (
-          <p className="text-xs text-slate-300 flex items-center gap-1 font-medium">
+          <p className="text-xs text-slate-600 flex items-center gap-1 font-medium">
             <span>📍 {problem.address}</span>
           </p>
         )}
@@ -350,7 +324,7 @@ const DuelCard: React.FC<DuelCardProps> = ({
                 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40'
                 : isGuest
                 ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 font-extrabold shadow-lg cursor-pointer'
-                : 'bg-white text-slate-950 hover:bg-rose-500 hover:text-white font-bold backdrop-blur-md shadow-lg cursor-pointer'
+                : 'bg-slate-900 text-white hover:bg-rose-500 hover:text-white font-bold shadow-lg cursor-pointer'
             }`}
           >
             {isWinner ? (

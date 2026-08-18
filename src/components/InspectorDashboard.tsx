@@ -11,9 +11,11 @@ import {
   ExternalLink,
   MapPin,
   X,
-  Filter
+  Filter,
+  Trophy,
+  Flame
 } from 'lucide-react';
-import type { Problem, District, Category, ThemeMode, Language } from '../types';
+import type { Problem, District, Category, Language } from '../types';
 import { updateProblemStatus, updateProblemResolution, deleteProblem } from '../utils/storage';
 import { getDistrictLabel, getCategoryLabel } from '../i18n/translations';
 import { getPriorityFromElo } from '../utils/priority';
@@ -23,18 +25,14 @@ import { exportProblemsToCSV } from '../utils/export';
 interface InspectorDashboardProps {
   problems: Problem[];
   onDataMutated: () => void;
-  theme?: ThemeMode;
   language?: Language;
 }
 
 export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   problems,
   onDataMutated,
-  theme = 'dark',
   language = 'ru',
 }) => {
-  const isDark = theme === 'dark';
-
   const [selectedDistrict, setSelectedDistrict] = useState<'all' | District>('all');
   const [selectedCategory, setSelectedCategory] = useState<'all' | Category>('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | Problem['status']>('all');
@@ -64,7 +62,6 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
         return true;
       })
       .sort((a, b) => {
-        // High priority first, open before resolved
         if (a.status === 'open' && b.status === 'resolved') return -1;
         if (a.status === 'resolved' && b.status === 'open') return 1;
         return b.eloRating - a.eloRating;
@@ -111,14 +108,20 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
   };
 
   // ── Style Tokens ──────────────────────────────────────────────────────────
-  const cardBg     = isDark ? 'bg-[#131B2E] border-slate-800' : 'bg-white border-slate-200 shadow-sm';
-  const subText    = isDark ? 'text-slate-400' : 'text-slate-500';
-  const headText   = isDark ? 'text-white' : 'text-slate-900';
-  const tableHead  = isDark ? 'bg-[#0B0F19] text-slate-400 border-slate-800' : 'bg-slate-50 text-slate-600 border-slate-200';
-  const rowHover   = isDark ? 'hover:bg-slate-800/40 border-slate-800/80' : 'hover:bg-slate-50/80 border-slate-200';
-  const inputBg    = isDark
-    ? 'bg-[#0B0F19] border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500'
-    : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500';
+  const cardBg     = 'bg-white border-slate-200 shadow-sm';
+  const subText    = 'text-slate-500';
+  const headText   = 'text-slate-900';
+  const tableHead  = 'bg-slate-50 text-slate-600 border-slate-200';
+  const rowHover   = 'hover:bg-slate-50/80 border-slate-200';
+  const inputBg    = 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500';
+
+  // Top priority problems
+  const topPriority = useMemo(() => {
+    return [...problems]
+      .filter(p => p.status !== 'resolved')
+      .sort((a, b) => b.eloRating - a.eloRating)
+      .slice(0, 5);
+  }, [problems]);
 
   return (
     <div className="w-full flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -136,7 +139,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${headText}`}>
                   Штаб ЖКХ & Акимат Шымкента
                 </h1>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-500 border border-cyan-500/30">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-600 border border-cyan-500/30">
                   Dispatcher Mode
                 </span>
               </div>
@@ -157,11 +160,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
             <button
               onClick={handlePrint}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                isDark
-                  ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
-                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
-              }`}
+              className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer bg-white text-slate-700 border-slate-300 hover:bg-slate-100`}
             >
               <Printer className="w-4 h-4" />
               <span>Печать наряда</span>
@@ -198,7 +197,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
         <div className={`p-4 sm:p-5 rounded-2xl border ${cardBg}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-500">В работе бригад</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-600">В работе бригад</span>
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
               <Wrench className="w-4 h-4" />
             </div>
@@ -209,7 +208,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
 
         <div className={`p-4 sm:p-5 rounded-2xl border ${cardBg}`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">Устранено</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Устранено</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
@@ -218,6 +217,50 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
           <div className="text-[11px] text-emerald-400 mt-0.5">Есть фото-отчет «До/После»</div>
         </div>
 
+      </div>
+
+      {/* Top Priority Section */}
+      <div className={`p-6 rounded-3xl border ${cardBg}`}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+            <Trophy className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-900">Топ-5 приоритетных проблем</h2>
+            <p className="text-xs text-slate-500">По результатам голосования горожан — решать в первую очередь</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {topPriority.map((problem, index) => {
+            const priority = getPriorityFromElo(problem.eloRating, language);
+            return (
+              <div key={problem.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${
+                  index === 0 ? 'bg-amber-500 text-white' : index === 1 ? 'bg-slate-300 text-slate-700' : index === 2 ? 'bg-orange-300 text-orange-900' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {index + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900 truncate">{problem.title}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${priority.badgeClass}`}>{priority.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                    <MapPin className="w-3 h-3" />
+                    <span>{getDistrictLabel(problem.district, language)}</span>
+                    <span>•</span>
+                    <span>{problem.address}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-bold text-slate-700">
+                  <Flame className="w-3.5 h-3.5 text-rose-500" />
+                  <span>{problem.eloRating}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Control Bar & Filters */}
@@ -289,7 +332,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             className={`px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer ${
               selectedDistrict === 'all'
                 ? 'bg-cyan-500 text-slate-950 shadow-sm'
-                : isDark ? 'bg-[#0B0F19] text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             Все ({problems.length})
@@ -303,7 +346,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 className={`px-2.5 py-1 rounded-lg font-semibold shrink-0 transition-all cursor-pointer ${
                   selectedDistrict === d
                     ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                    : isDark ? 'bg-[#0B0F19] text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 {getDistrictLabel(d, language)} ({count})
@@ -326,7 +369,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 <th className="py-3.5 px-4 text-right">Действия диспетчера</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/40">
+            <tbody className="divide-y divide-slate-200">
               {filteredProblems.length === 0 ? (
                 <tr>
                   <td colSpan={5} className={`py-12 text-center text-sm ${subText}`}>
@@ -357,7 +400,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                       {/* Title & Photo */}
                       <td className="py-4 px-4 align-middle max-w-xs sm:max-w-md">
                         <div className="flex items-center gap-3">
-                          <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-700 shrink-0">
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-300 shrink-0">
                             <img
                               src={problem.imageUrl}
                               alt={problem.title}
@@ -377,7 +420,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                             <p className={`text-[11px] line-clamp-1 mt-0.5 ${subText}`}>
                               {problem.description}
                             </p>
-                            <span className="text-[10px] text-cyan-500 font-semibold">
+                            <span className="text-[10px] text-cyan-600 font-semibold">
                               {getCategoryLabel(problem.category, language)}
                             </span>
                           </div>
@@ -387,7 +430,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                       {/* District & Location */}
                       <td className="py-4 px-4 align-middle whitespace-nowrap">
                         <div className="space-y-0.5">
-                          <div className="flex items-center gap-1 font-bold text-slate-200">
+                          <div className="flex items-center gap-1 font-bold text-slate-700">
                             <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                             <span>{getDistrictLabel(problem.district, language)}</span>
                           </div>
@@ -400,7 +443,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                             href={`https://maps.google.com/?q=${problem.locationLat},${problem.locationLng}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1"
+                            className="text-[10px] text-cyan-600 hover:underline flex items-center gap-1"
                           >
                             <span>На карте</span>
                             <ExternalLink className="w-2.5 h-2.5" />
@@ -411,17 +454,17 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                       {/* Status */}
                       <td className="py-4 px-4 align-middle whitespace-nowrap">
                         {isResolved ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 text-xs font-bold">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             Устранено
                           </span>
                         ) : isInProgress ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-bold">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-600 border border-amber-500/30 text-xs font-bold">
                             <Wrench className="w-3.5 h-3.5 animate-spin" />
                             В работе
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/30 text-xs font-bold">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-600 border border-rose-500/30 text-xs font-bold">
                             <Clock className="w-3.5 h-3.5" />
                             В очереди
                           </span>
@@ -436,7 +479,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                           {!isResolved && !isInProgress && (
                             <button
                               onClick={() => handleStatusChange(problem.id, 'in_progress')}
-                              className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                              className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                               title="Отправить ремонтную бригаду"
                             >
                               <Wrench className="w-3.5 h-3.5" />
@@ -448,7 +491,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                           {!isResolved && (
                             <button
                               onClick={() => handleOpenResolveModal(problem)}
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                               title="Прикрепить отчет о выполненных работах"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -460,11 +503,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                           {isResolved && (
                             <button
                               onClick={() => handleStatusChange(problem.id, 'open')}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                                isDark
-                                  ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                                  : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
-                              }`}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200`}
                               title="Вернуть в очередь"
                             >
                               Вернуть в очередь
@@ -474,7 +513,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                           {/* Delete Button */}
                           <button
                             onClick={() => handleDelete(problem.id)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                             title="Удалить заявку"
                           >
                             <X className="w-4 h-4" />
@@ -495,7 +534,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
       {/* Resolve Problem Modal */}
       {resolvingProblem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className={`relative w-full max-w-lg ${cardBg} rounded-3xl p-6 shadow-2xl border space-y-4`}>
+          <div className={`relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4`}>
             
             <button
               onClick={() => setResolvingProblem(null)}
@@ -505,14 +544,14 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className={`text-base font-bold ${headText}`}>
+                <h3 className={`text-base font-bold text-slate-900`}>
                   Отчет о выполнении работ
                 </h3>
-                <p className={`text-xs ${subText}`}>
+                <p className={`text-xs text-slate-500`}>
                   {resolvingProblem.title}
                 </p>
               </div>
@@ -521,7 +560,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
             <form onSubmit={handleConfirmResolve} className="space-y-4 pt-2">
               
               <div className="space-y-1.5">
-                <label className={`text-xs font-semibold ${headText}`}>
+                <label className={`text-xs font-semibold text-slate-900`}>
                   Фотография после ремонта (URL) *
                 </label>
                 <input
@@ -530,12 +569,12 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                   value={resolvedImage}
                   onChange={(e) => setResolvedImage(e.target.value)}
                   placeholder="https://..."
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs focus:outline-none ${inputBg}`}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs focus:outline-none bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500`}
                 />
               </div>
 
               {resolvedImage && (
-                <div className="relative h-36 rounded-xl overflow-hidden border border-slate-700">
+                <div className="relative h-36 rounded-xl overflow-hidden border border-slate-300">
                   <img
                     src={resolvedImage}
                     alt="Resolved Proof"
@@ -548,7 +587,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
               )}
 
               <div className="space-y-1.5">
-                <label className={`text-xs font-semibold ${headText}`}>
+                <label className={`text-xs font-semibold text-slate-900`}>
                   Отчетная заметка для жителей и руководства
                 </label>
                 <textarea
@@ -556,7 +595,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                   value={resolvedNote}
                   onChange={(e) => setResolvedNote(e.target.value)}
                   placeholder="Например: Уложена новая асфальтобетонная смесь, работы приняты технадзором."
-                  className={`w-full px-3.5 py-2 rounded-xl border text-xs focus:outline-none resize-none ${inputBg}`}
+                  className={`w-full px-3.5 py-2 rounded-xl border text-xs focus:outline-none resize-none bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500`}
                 />
               </div>
 
@@ -564,9 +603,7 @@ export const InspectorDashboard: React.FC<InspectorDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setResolvingProblem(null)}
-                  className={`w-1/3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer ${
-                    isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'
-                  }`}
+                  className={`w-1/3 py-2.5 rounded-xl text-xs font-semibold cursor-pointer bg-slate-100 text-slate-700`}
                 >
                   Отмена
                 </button>

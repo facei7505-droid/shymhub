@@ -27,7 +27,7 @@ export const AddProblemModal: React.FC<AddProblemModalProps> = ({
   onProblemAdded,
   currentUser,
   language = 'ru',
-  theme = 'dark',
+  theme = 'light',
 }) => {
   const t = (key: string) => TRANSLATIONS[language]?.[key] || key;
   const isDark = theme === 'dark';

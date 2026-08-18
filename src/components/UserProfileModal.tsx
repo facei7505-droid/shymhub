@@ -20,7 +20,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onLogout,
   onOpenAuthModal,
   language = 'ru',
-  theme = 'dark',
+  theme = 'light',
 }) => {
   if (!isOpen || !user) return null;
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, User as UserIcon, Shield, ArrowRight } from 'lucide-react';
 import type { User, District, Language, ThemeMode } from '../types';
-import { DEMO_USERS, registerCustomUser } from '../utils/auth';
+import { DEMO_USERS, loginUser, registerUser } from '../utils/auth';
 import { TRANSLATIONS, getDistrictLabel } from '../i18n/translations';
 
 interface AuthModalProps {
@@ -12,16 +12,22 @@ interface AuthModalProps {
   theme?: ThemeMode;
 }
 
+type AuthTab = 'demo' | 'login' | 'register';
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   onLoginSuccess,
   language = 'ru',
-  theme = 'dark',
+  theme = 'light',
 }) => {
-  const [tab, setTab] = useState<'demo' | 'custom'>('demo');
+  const [tab, setTab] = useState<AuthTab>('demo');
   const [name, setName] = useState('');
   const [district, setDistrict] = useState<District>('Аль-Фарабийский');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
@@ -33,17 +39,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    const user = registerCustomUser(name, district);
-    onLoginSuccess(user);
-    onClose();
+    setError('');
+    setLoading(true);
+    try {
+      const user = await loginUser(email, password);
+      onLoginSuccess(user);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка входа');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError('Заполните все поля');
+      return;
+    }
+    setLoading(true);
+    try {
+      const user = await registerUser(name, email, password, 'citizen', district);
+      onLoginSuccess(user);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка регистрации');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const districts: District[] = ['Аль-Фарабийский', 'Енбекшинский', 'Абайский', 'Каратауский', 'Туран'];
 
-  // ── Style tokens ──────────────────────────────────────────────────────────
   const bg      = isDark ? 'bg-[#131B2E]' : 'bg-white';
   const border  = isDark ? 'border-slate-700' : 'border-slate-200';
   const overlay = isDark ? 'bg-black/60' : 'bg-slate-900/40';
@@ -75,12 +106,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     ? 'bg-[#0B0F19] border-slate-800 text-white focus:border-cyan-500'
     : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-cyan-500';
   const labelCls = isDark ? 'text-slate-300' : 'text-slate-700';
+  const errorCls = 'text-rose-400 text-xs';
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${overlay} backdrop-blur-sm animate-in fade-in duration-200`}>
       <div className={`relative w-full max-w-md ${bg} border ${border} rounded-3xl shadow-2xl overflow-hidden p-6 space-y-5`}>
 
-        {/* Close */}
         <button
           onClick={onClose}
           className={`absolute top-5 right-5 p-2 rounded-full transition-colors cursor-pointer ${closeBtnCls}`}
@@ -88,14 +119,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
         <div className="space-y-1">
           <h3 className={`text-2xl font-bold tracking-tight ${titleCls}`}>{t('authTitle')}</h3>
           <p className={`text-xs ${subCls}`}>{t('authSubtitle')}</p>
         </div>
 
-        {/* Tab Switch */}
-        <div className={`grid grid-cols-2 gap-1 p-1 rounded-2xl border text-xs font-semibold ${tabBarBg}`}>
+        <div className={`grid grid-cols-3 gap-1 p-1 rounded-2xl border text-xs font-semibold ${tabBarBg}`}>
           <button
             onClick={() => setTab('demo')}
             className={`py-2 rounded-xl transition-all cursor-pointer ${tab === 'demo' ? tabActive : tabIdle}`}
@@ -103,14 +132,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {t('quickDemoTab')}
           </button>
           <button
-            onClick={() => setTab('custom')}
-            className={`py-2 rounded-xl transition-all cursor-pointer ${tab === 'custom' ? tabActive : tabIdle}`}
+            onClick={() => setTab('login')}
+            className={`py-2 rounded-xl transition-all cursor-pointer ${tab === 'login' ? tabActive : tabIdle}`}
           >
-            {t('customProfileTab')}
+            Вход
+          </button>
+          <button
+            onClick={() => setTab('register')}
+            className={`py-2 rounded-xl transition-all cursor-pointer ${tab === 'register' ? tabActive : tabIdle}`}
+          >
+            Регистрация
           </button>
         </div>
 
-        {/* Content */}
+        {error && <p className={errorCls}>{error}</p>}
+
         {tab === 'demo' ? (
           <div className="space-y-3">
             <p className={`text-xs ${subCls}`}>{t('demoPickHint')}</p>
@@ -137,8 +173,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ))}
             </div>
           </div>
+        ) : tab === 'login' ? (
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className={`text-xs font-semibold ${labelCls}`}>Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-colors ${inputCls}`}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className={`text-xs font-semibold ${labelCls}`}>Пароль</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-colors ${inputCls}`}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all shadow-lg cursor-pointer disabled:opacity-50"
+            >
+              {loading ? 'Входим...' : 'Войти'}
+            </button>
+          </form>
         ) : (
-          <form onSubmit={handleCustomSubmit} className="space-y-4">
+          <form onSubmit={handleRegisterSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className={`text-xs font-semibold ${labelCls}`}>{t('yourName')}</label>
               <input
@@ -147,6 +215,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Например: Канат Сейфуллин"
+                className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-colors ${inputCls}`}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={`text-xs font-semibold ${labelCls}`}>Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-colors ${inputCls}`}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={`text-xs font-semibold ${labelCls}`}>Пароль</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-colors ${inputCls}`}
               />
             </div>
@@ -166,9 +258,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all shadow-lg cursor-pointer"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all shadow-lg cursor-pointer disabled:opacity-50"
             >
-              {t('createCitizenAccount')}
+              {loading ? 'Создаём...' : t('createCitizenAccount')}
             </button>
           </form>
         )}

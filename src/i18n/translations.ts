@@ -3,7 +3,7 @@ import type { Language, District, Category } from '../types';
 export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   kz: {
     // Brand & Header
-    appName: 'UrbanArena',
+    appName: 'Battle of Problems',
     cityTag: 'Шымкент',
     tagline: 'Қала мәселелерін басымдыққа бөлу',
     arena: 'Арена',
@@ -77,7 +77,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     publishButton: 'Жариялау',
     
     // Settings
-    settingsTitle: 'UrbanArena баптаулары',
+    settingsTitle: 'Battle of Problems баптаулары',
     settingsSubtitle: 'Тіл, тақырып, дыбыстар және параметрлер',
     languageSection: 'Интерфейс тілі',
     themeSection: 'Дизайн тақырыбы',
@@ -108,7 +108,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     close: 'Жабу',
     
     // Auth & Profile
-    authTitle: 'UrbanArena-ға кіру',
+    authTitle: 'Battle of Problems-ға кіру',
     authSubtitle: 'Қалалық мәселелерді шешуге қатысыңыз',
     quickDemoTab: '⚡ Жылдам кіру (Демо)',
     customProfileTab: 'Жеке аккаунт',
@@ -124,7 +124,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     switchAccount: 'Аккаунтты ауыстыру',
   },
   ru: {
-    appName: 'UrbanArena',
+    appName: 'Battle of Problems',
     cityTag: 'Шымкент',
     tagline: 'Выбор приоритетов города',
     arena: 'Арена',
@@ -194,7 +194,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     nextPhoto: 'Далее: Фото и проверка',
     publishButton: 'Опубликовать',
     
-    settingsTitle: 'Настройки UrbanArena',
+    settingsTitle: 'Настройки Battle of Problems',
     settingsSubtitle: 'Параметры языка, темы, алгоритма приоритизации, звуков и отчетов',
     languageSection: 'Язык интерфейса',
     themeSection: 'Тема оформления',
@@ -224,7 +224,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     saved: 'Сохранено!',
     close: 'Закрыть',
     
-    authTitle: 'Вход в UrbanArena',
+    authTitle: 'Вход в Battle of Problems',
     authSubtitle: 'Участвуйте в развитии и ремонте города',
     quickDemoTab: '⚡ Быстрый вход (Демо)',
     customProfileTab: 'Свой профиль',
@@ -240,7 +240,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     switchAccount: 'Сменить аккаунт',
   },
   en: {
-    appName: 'UrbanArena',
+    appName: 'Battle of Problems',
     cityTag: 'Shymkent',
     tagline: 'City Priority Ranking',
     arena: 'Arena',
@@ -310,7 +310,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     nextPhoto: 'Next: Photo & Review',
     publishButton: 'Publish',
     
-    settingsTitle: 'UrbanArena Settings',
+    settingsTitle: 'Battle of Problems Settings',
     settingsSubtitle: 'Language, theme, prioritization algorithm, audio, and report export settings',
     languageSection: 'Interface Language',
     themeSection: 'Theme Mode',
@@ -340,7 +340,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     saved: 'Saved!',
     close: 'Close',
     
-    authTitle: 'Sign In to UrbanArena',
+    authTitle: 'Sign In to Battle of Problems',
     authSubtitle: 'Participate in city improvement',
     quickDemoTab: '⚡ Quick Demo Logins',
     customProfileTab: 'Custom Profile',

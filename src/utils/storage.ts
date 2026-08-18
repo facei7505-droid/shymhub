@@ -1,6 +1,7 @@
 import type { Problem, MatchHistory } from '../types';
 import { calculateElo } from './elo';
 import { CATEGORY_FALLBACK_IMAGES } from './images';
+import { INITIAL_PROBLEMS } from '../data/initialProblems';
 
 const STORAGE_KEY = 'urban_arena_problems_fastapi_v1';
 const HISTORY_KEY = 'urban_arena_matches_v1';
@@ -35,7 +36,8 @@ export function saveProblems(problems: Problem[]): void {
 export function resetProblems(): Problem[] {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(HISTORY_KEY);
-  return [];
+  saveProblems(INITIAL_PROBLEMS.map(p => ({ ...p })));
+  return INITIAL_PROBLEMS.map(p => ({ ...p }));
 }
 
 export function getMatchHistory(): MatchHistory[] {
@@ -121,17 +123,18 @@ export function recordVote(winnerId: string, loserId: string, userId?: string): 
   return { updatedProblems: [...problems], delta: winnerDelta };
 }
 
-export function getPairToVote(excludeIds: string[] = []): [Problem, Problem] | null {
-  const problems = getProblems().filter((p) => p.status !== 'resolved');
-  if (problems.length < 2) return null;
+export function getPairToVote(excludeIds: string[] = [], problemsSource?: Problem[]): [Problem, Problem] | null {
+  const problems = problemsSource ?? getProblems();
+  const active = problems.filter((p) => p.status !== 'resolved');
+  if (active.length < 2) return null;
 
-  const pool = problems.filter((p) => !excludeIds.includes(p.id));
-  const candidatePool = pool.length >= 2 ? pool : problems;
+  const pool = active.filter((p) => !excludeIds.includes(p.id));
+  const candidatePool = pool.length >= 2 ? pool : active;
 
   const firstIndex = Math.floor(Math.random() * candidatePool.length);
   const first = candidatePool[firstIndex];
 
-  const remaining = problems.filter((p) => p.id !== first.id);
+  const remaining = active.filter((p) => p.id !== first.id);
   const closeEloCandidates = remaining.filter((p) => Math.abs(p.eloRating - first.eloRating) <= 200);
 
   let second: Problem;
