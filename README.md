@@ -1,5 +1,7 @@
 # shymhub
 
+Сервер задеплоен в сайте https://shymhub.vercel.app/  Однако, бэкенд каждый раз падает из за бесплатного хостинга, когда нету запросов
+
 Battle of Problems — civic issue prioritization platform for Shymkent.
 
 ## Stack
