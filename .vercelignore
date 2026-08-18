@@ -1,0 +1,8 @@
+backend/
+login-form/
+node_modules/
+dist/
+.env
+.env.local
+*.pyc
+__pycache__/
