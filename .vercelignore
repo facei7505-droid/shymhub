@@ -1,5 +1,4 @@
 backend/
-login-form/
 node_modules/
 dist/
 .env
