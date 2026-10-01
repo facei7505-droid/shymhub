@@ -6,21 +6,30 @@ from typing import Optional, List
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import bcrypt
-import uuid
+import logging
 import os
+import secrets
+import uuid
 
 # --- Config ---
-SECRET_KEY = os.getenv("SECRET_KEY", "shymkent-hub-secret-key-change-in-production")
+logger = logging.getLogger("shymkent-hub")
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    # Dev fallback: a random key per process. Tokens are invalidated on restart.
+    SECRET_KEY = secrets.token_urlsafe(32)
+    logger.warning("SECRET_KEY is not set; using an ephemeral key (dev only).")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
 
 # --- App ---
 app = FastAPI(title="Shymkent Hub API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=CORS_ORIGINS != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
